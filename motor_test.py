@@ -1,7 +1,6 @@
 import RPi.GPIO as GPIO
 import time
 
-# Pin definitions
 ENA = 12
 IN1 = 17
 IN2 = 27
@@ -12,15 +11,13 @@ ENB = 13
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-# Setup pins
 for pin in [ENA, IN1, IN2, IN3, IN4, ENB]:
     GPIO.setup(pin, GPIO.OUT)
 
-# PWM setup (1 kHz frequency)
 pwm_left = GPIO.PWM(ENA, 1000)
 pwm_right = GPIO.PWM(ENB, 1000)
 
-pwm_left.start(0)   # 0% duty cycle (off)
+pwm_left.start(0)
 pwm_right.start(0)
 
 def forward():
@@ -28,7 +25,7 @@ def forward():
     GPIO.output(IN2, GPIO.LOW)
     GPIO.output(IN3, GPIO.HIGH)
     GPIO.output(IN4, GPIO.LOW)
-    pwm_left.ChangeDutyCycle(90)   # 70% speed
+    pwm_left.ChangeDutyCycle(90) 
     pwm_right.ChangeDutyCycle(70)
 
 def stop():

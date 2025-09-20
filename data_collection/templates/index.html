@@ -1,0 +1,19 @@
+ <!DOCTYPE html>
+<html>
+<head>
+    <title>Raspi Car</title>
+</head>
+<body>
+
+    <h1>Control Panel</h1>
+    <img src="{{url_for('video_feed')}}" width="400">
+    <div>
+        <button onclick="fetch('/forward')">Forward</button>
+        <button onclick="fetch('/backward')">Backward</button>
+        <button onclick="fetch('/right')">Right</button>
+        <button onclick="fetch('/left')">Left</button>
+        <button onclick="fetch('/stop')">Stop</button>
+    </div>
+
+</body>
+</html> 

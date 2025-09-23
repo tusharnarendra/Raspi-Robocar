@@ -1,19 +1,43 @@
- <!DOCTYPE html>
+<!--
+    Very basic html script to give live webcam feed and allow user to use arrow keys to control the car
+-->
+
+<!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Raspi Car</title>
+    <style>
+        html, body { height:100%; margin:0; }
+        body{
+            display:flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: sans-serif;
+        }
+        img{
+            width: 60%;
+            height: auto;
+            display: block;
+        }
+    </style>
 </head>
 <body>
 
     <h1>Control Panel</h1>
     <img src="{{url_for('video_feed')}}" width="400">
-    <div>
-        <button onclick="fetch('/forward')">Forward</button>
-        <button onclick="fetch('/backward')">Backward</button>
-        <button onclick="fetch('/right')">Right</button>
-        <button onclick="fetch('/left')">Left</button>
-        <button onclick="fetch('/stop')">Stop</button>
-    </div>
+    <script>
+        window.addEventListener('keydown', function(e){
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+                if (e.key == 'ArrowUp') fetch('/forward');
+                if (e.key == 'ArrowDown') fetch('/backward');
+                if (e.key == 'ArrowLeft') fetch('/left');
+                if (e.key == 'ArrowRight') fetch('/right');
+                if (e.key == ' ') fetch('/stop');
+            }
+        });
+    </script>
 
 </body>
 </html> 

@@ -5,7 +5,35 @@ This script creates a simple flask app so that the car can be manually controlle
 from flask import Flask, render_template, Response
 import RPi.GPIO as GPIO 
 import cv2
-import atexit  # <-- added
+import atexit  
+import os
+import csv
+from datetime import datetime
+
+# -- DATASET SETUP --
+
+#Creating directories to store dataset
+dataset_dir = "dataset"
+images_dir = os.path.join(dataset_dir, "images")
+os.makedirs(images_dir, exist_ok=True)
+
+csv_file = os.path.join(dataset_dir, "labels.csv")
+
+#Appending to csv file with rows
+if not os.path.exists(csv_file):
+    with open(csv_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['filename', 'label'])
+
+#Function to save image and label
+def save_frame(frame,action):
+    timestamp=datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    filename = f"{timestamp}.jpg"
+    path = os.path.join(images_dir,filename)
+    cv2.imwrite(path, frame)
+    with open(csv_file, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([filename, action])
 
 #Setting up the GPIO pins with their associated connections to the motor driver
 ENA = 12 #Enable pin for left motor
@@ -32,8 +60,8 @@ pwm_left.start(0)
 pwm_right.start(0)
 
 #Motors are not perfectly matched -> requires calibration
-LEFT_CAL = 0.9
-RIGHT_CAL = 0.7
+LEFT_CAL = 0.7
+RIGHT_CAL = 0.65
 
 # -- DIRECTION CONTROLS -- 
 def forward(speed):
@@ -42,8 +70,8 @@ def forward(speed):
     GPIO.output(IN3, GPIO.HIGH)
     GPIO.output(IN4, GPIO.LOW)
     max_cal = max(LEFT_CAL, RIGHT_CAL)
-    pwm_left.ChangeDutyCycle(speed*(LEFT_CAL/max_cal)) 
-    pwm_right.ChangeDutyCycle(speed*(RIGHT_CAL/max_cal)) 
+    pwm_left.ChangeDutyCycle(speed*(LEFT_CAL)) 
+    pwm_right.ChangeDutyCycle(speed*(RIGHT_CAL)) 
 
 def backward(speed):
     GPIO.output(IN1, GPIO.LOW)
@@ -51,8 +79,8 @@ def backward(speed):
     GPIO.output(IN3, GPIO.LOW)
     GPIO.output(IN4, GPIO.HIGH)
     max_cal = max(LEFT_CAL, RIGHT_CAL)
-    pwm_left.ChangeDutyCycle(speed*(LEFT_CAL/max_cal)) 
-    pwm_right.ChangeDutyCycle(speed*(RIGHT_CAL/max_cal))  
+    pwm_left.ChangeDutyCycle(speed*(LEFT_CAL)) 
+    pwm_right.ChangeDutyCycle(speed*(RIGHT_CAL))  
 
 def right(speed_left, speed_right):
     GPIO.output(IN1, GPIO.LOW)
@@ -60,8 +88,8 @@ def right(speed_left, speed_right):
     GPIO.output(IN3, GPIO.HIGH)
     GPIO.output(IN4, GPIO.LOW)
     max_cal = max(LEFT_CAL, RIGHT_CAL)
-    pwm_left.ChangeDutyCycle(speed_left*(LEFT_CAL/max_cal)) 
-    pwm_right.ChangeDutyCycle(speed_right*(RIGHT_CAL/max_cal))
+    pwm_left.ChangeDutyCycle(speed_left*(LEFT_CAL)) 
+    pwm_right.ChangeDutyCycle(speed_right*(RIGHT_CAL))
 
 def left(speed_left, speed_right):
     GPIO.output(IN1, GPIO.HIGH)
@@ -69,8 +97,8 @@ def left(speed_left, speed_right):
     GPIO.output(IN3, GPIO.LOW)
     GPIO.output(IN4, GPIO.HIGH)
     max_cal = max(LEFT_CAL, RIGHT_CAL)
-    pwm_left.ChangeDutyCycle(speed_left*(LEFT_CAL/max_cal)) 
-    pwm_right.ChangeDutyCycle(speed_right*(RIGHT_CAL/max_cal))
+    pwm_left.ChangeDutyCycle(speed_left*LEFT_CAL) 
+    pwm_right.ChangeDutyCycle(speed_right*RIGHT_CAL)
 
 def stop():
     pwm_left.ChangeDutyCycle(0)
@@ -101,12 +129,18 @@ def index():
 #browser sends requests depending on direction selected by user
 @app.route("/<cmd>")
 def command(cmd):
-    if cmd == "forward": forward(70)
-    elif cmd == "backward": backward(70)
-    elif cmd == "left": left(70,70)
-    elif cmd == "right": right(70,70)
+    if cmd == "forward": forward(60)
+    elif cmd == "backward": backward(60)
+    elif cmd == "left": left(25,25)
+    elif cmd == "right": right(25,25)
     elif cmd == "stop": stop()
+
+    success,frame = camera.read()
+    if success:
+        save_frame(frame,cmd)
+
     return "OK"
+
 
 camera = cv2.VideoCapture(0)
 def gen_frames():

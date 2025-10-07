@@ -60,8 +60,8 @@ pwm_left.start(0)
 pwm_right.start(0)
 
 #Motors are not perfectly matched -> requires calibration
-RIGHT_CAL = 0.7
-LEFT_CAL = 0.75
+RIGHT_CAL = 0.65
+LEFT_CAL = 0.725
 
 # -- DIRECTION CONTROLS -- 
 def forward(speed):

@@ -9,31 +9,31 @@ import atexit
 import os
 import csv
 from datetime import datetime
+import threading
+import time
+
+current_action = None
 
 # -- DATASET SETUP --
 
 #Creating directories to store dataset
 dataset_dir = "dataset"
 images_dir = os.path.join(dataset_dir, "images")
-os.makedirs(images_dir, exist_ok=True)
 
-csv_file = os.path.join(dataset_dir, "labels.csv")
+# Define possible labels
+labels = ["forward", "backward", "left", "right", "stop"]
 
-#Appending to csv file with rows
-if not os.path.exists(csv_file):
-    with open(csv_file, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['filename', 'label'])
+# Create subfolders for each label
+for label in labels:
+    os.makedirs(os.path.join(images_dir, label), exist_ok=True)
 
 #Function to save image and label
-def save_frame(frame,action):
-    timestamp=datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+def save_frame(frame, action):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     filename = f"{timestamp}.jpg"
-    path = os.path.join(images_dir,filename)
+    # Save in folder corresponding to action/label
+    path = os.path.join(images_dir, action, filename)
     cv2.imwrite(path, frame)
-    with open(csv_file, 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow([filename, action])
 
 #Setting up the GPIO pins with their associated connections to the motor driver
 ENA = 12 #Enable pin for right motor
@@ -127,15 +127,18 @@ def index():
 #browser sends requests depending on direction selected by user
 @app.route("/<cmd>")
 def command(cmd):
+    global current_action
     if cmd == "forward": forward(60)
     elif cmd == "backward": backward(60)
     elif cmd == "left": left(50)
     elif cmd == "right": right(50)
     elif cmd == "stop": stop()
 
-    success,frame = camera.read()
-    if success:
-        save_frame(frame,cmd)
+    # Update current_action
+    if cmd == "stop":
+        current_action = None
+    else:
+        current_action = cmd
 
     return "OK"
 
@@ -155,6 +158,19 @@ def gen_frames():
 @app.route("/video_feed")
 def video_feed():
     return Response(gen_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+def capture_frames():
+    global current_action
+    while True:
+        success, frame = camera.read()
+        if success and current_action is not None:
+            save_frame(frame, current_action)
+        time.sleep(0.1)  # capture ~10 frames per second
+
+# Start the capture thread
+capture_thread = threading.Thread(target=capture_frames, daemon=True)
+capture_thread.start()
 
 #Run on all IPs and with port 5000
 if __name__ == "__main__":

@@ -160,13 +160,6 @@ def command(cmd):
             save_frame(frame, label_map[cmd])
     return "OK"
 
-@app.route("/label/<key>")
-def label_frame(key):
-    if key in space_labels:
-        success, frame = camera.read()
-        if success:
-            save_frame(frame, space_labels[key])
-    return "OK"
 
 #Stream frames in real time
 @app.route("/video_feed")

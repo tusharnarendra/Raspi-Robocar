@@ -28,13 +28,17 @@
     <img src="{{url_for('video_feed')}}" width="400">
     <script>
         window.addEventListener('keydown', function(e){
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+            if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','w','a','d'].includes(e.key)){
                 e.preventDefault();
-                if (e.key == 'ArrowUp') fetch('/forward');
-                if (e.key == 'ArrowDown') fetch('/backward');
-                if (e.key == 'ArrowLeft') fetch('/left');
-                if (e.key == 'ArrowRight') fetch('/right');
-                if (e.key == ' ') fetch('/stop');
+                if(e.key=='ArrowUp') fetch('/forward_arrow');
+                if(e.key=='ArrowDown') fetch('/backward_arrow');
+                if(e.key=='ArrowLeft') fetch('/left_arrow');
+                if(e.key=='ArrowRight') fetch('/right_arrow');
+                if(e.key==' ') fetch('/stop');
+                if(e.key=='w') fetch('/w');
+                if(e.key=='a') fetch('/a');
+                if(e.key=='d') fetch('/d');
+                if(e.key=='s') fetch('/s');
             }
         });
     </script>

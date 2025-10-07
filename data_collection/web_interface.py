@@ -12,7 +12,6 @@ from datetime import datetime
 import threading
 import time
 
-current_action = None
 
 # -- DATASET SETUP --
 
@@ -20,19 +19,28 @@ current_action = None
 dataset_dir = "dataset"
 images_dir = os.path.join(dataset_dir, "images")
 
-# Define possible labels
-labels = ["forward", "backward", "left", "right", "stop"]
-
+# Define possible labels (old system )
+#labels = ["forward", "backward", "left", "right", "stop"]
 # Create subfolders for each label
-for label in labels:
-    os.makedirs(os.path.join(images_dir, label), exist_ok=True)
+#for label in labels:
+    #os.makedirs(os.path.join(images_dir, label), exist_ok=True)
 
+#Determing which direction has most available space
+space_labels = {
+    'w': 'space_forward',
+    'a': 'space_left',
+    'd': 'space_right',
+    's': 'stop'
+}
+
+for folder in space_labels.values():
+    os.makedirs(os.path.join(images_dir, folder), exist_ok=True)
+    
 #Function to save image and label
-def save_frame(frame, action):
+def save_frame(frame, label):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     filename = f"{timestamp}.jpg"
-    # Save in folder corresponding to action/label
-    path = os.path.join(images_dir, action, filename)
+    path = os.path.join(images_dir, label, filename)
     cv2.imwrite(path, frame)
 
 #Setting up the GPIO pins with their associated connections to the motor driver
@@ -119,31 +127,8 @@ atexit.register(cleanup)
 
 app = Flask(__name__)
 
-#index.html set as control page
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-#browser sends requests depending on direction selected by user
-@app.route("/<cmd>")
-def command(cmd):
-    global current_action
-    if cmd == "forward": forward(60)
-    elif cmd == "backward": backward(60)
-    elif cmd == "left": left(50)
-    elif cmd == "right": right(50)
-    elif cmd == "stop": stop()
-
-    # Update current_action
-    if cmd == "stop":
-        current_action = None
-    else:
-        current_action = cmd
-
-    return "OK"
-
-
 camera = cv2.VideoCapture(0)
+
 def gen_frames():
     while True:
         success, frame = camera.read()
@@ -154,23 +139,40 @@ def gen_frames():
             frame = buffer.tobytes()
             yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
+#index.html set as control page
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+#browser sends requests depending on direction selected by user
+@app.route("/<cmd>")
+def command(cmd):
+    if cmd == "forward_arrow": forward(60)
+    elif cmd == "backward_arrow": backward(60)
+    elif cmd == "left_arrow": left(50)
+    elif cmd == "right_arrow": right(50)
+    elif cmd == "stop": stop()
+    elif cmd in ["w", "a", "d", "s"]:
+        success, frame = camera.read()
+        if success:
+            label_map = {"w": "space_forward", "a": "space_left", "d": "space_right", "s": "stop"}
+            save_frame(frame, label_map[cmd])
+    return "OK"
+
+@app.route("/label/<key>")
+def label_frame(key):
+    if key in space_labels:
+        success, frame = camera.read()
+        if success:
+            save_frame(frame, space_labels[key])
+    return "OK"
+
 #Stream frames in real time
 @app.route("/video_feed")
 def video_feed():
     return Response(gen_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
-
-def capture_frames():
-    global current_action
-    while True:
-        success, frame = camera.read()
-        if success and current_action is not None:
-            save_frame(frame, current_action)
-        time.sleep(0.1)  # capture ~10 frames per second
-
-# Start the capture thread
-capture_thread = threading.Thread(target=capture_frames, daemon=True)
-capture_thread.start()
 
 #Run on all IPs and with port 5000
 if __name__ == "__main__":
